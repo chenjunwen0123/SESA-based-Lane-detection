@@ -1,4 +1,5 @@
 # SESA-based-Lane-detection
+![network.svg](assets/ACLD-SESA.svg)
 - 这是一份本科毕业设计，改良自 [Ultra-Fast-Lane-Detection-v2](https://github.com/cfzd/Ultra-Fast-Lane-Detection-v2)
 - 特色
   - 混合锚标记车道线
