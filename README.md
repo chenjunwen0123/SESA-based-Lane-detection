@@ -1,80 +1,152 @@
-# Ultra-Fast-Lane-Detection-V2
-PyTorch implementation of the paper "[Ultra Fast Deep Lane Detection with Hybrid Anchor Driven Ordinal Classification](https://arxiv.org/abs/2206.07389)".
+# SESA-based-Lane-detection
+# 成果样例
+![image-20230508142731480](.\assets\demo-night-1.png)
+
+![image-20230508142834719](.\assets\demo-night-2.png)
+
+![image-20230508142935076](.\assets\demo-dazzle-1.png)
+
+![image-20230508143012771](.\assets\demo-shadow-1.png)
+
+![image-20230508143040448](.\assets\demo-curve-1.png)
 
 
-![](ufldv2.png "vis")
+# 预配置
+包括依赖安装、数据集配置
+详情见 [INSTALL.md](./INSTALL.md)
 
-# Demo 
-<a href="https://youtu.be/VkvpoHlaMe0
-" target="_blank"><img src="http://img.youtube.com/vi/VkvpoHlaMe0/0.jpg" 
-alt="Demo" width="240" height="180" border="10" /></a>
+# 使用方法
+### 启动训练
 
+1. 需要指定训练配置文件`<config.py>`，使用`--log_path`指定模型文件和训练日志缓存的目录
 
-# Install
-Please see [INSTALL.md](./INSTALL.md)
+2. **单卡训练：**
 
-# Get started
-Please modify the `data_root` in any configs you would like to run. We will use `configs/culane_res18.py` as an example.
-
-To train the model, you can run:
+```shell
+python train.py configs/<config.py> --log_path /path/to/your/work/dir
 ```
-python train.py configs/culane_res18.py --log_path /path/to/your/work/dir
-```
-or
-```
-python -m torch.distributed.launch --nproc_per_node=8 train.py configs/culane_res18.py --log_path /path/to/your/work/dir
-```
-It should be noted that if you use different number of GPUs, the learning rate should be adjusted accordingly. The configs' learning rates correspond to 8-GPU training on CULane and CurveLanes datasets. **If you want to train on CULane or CurveLanes with single GPU, please decrease the learning rate by a factor of 1/8.** On the Tusimple, the learning rate corresponds to single GPU training.
-# Trained models
-We provide trained models on CULane, Tusimple, and CurveLanes.
+3. **分布式训练：**
 
-| Dataset    | Backbone | F1   | Link |
-|------------|----------|-------|------|
-| CULane     | ResNet18 | 75.0  |  [Google](https://drive.google.com/file/d/1oEjJraFr-3lxhX_OXduAGFWalWa6Xh3W/view?usp=sharing)/[Baidu](https://pan.baidu.com/s/1Z3W4y3eA9xrXJ51-voK4WQ?pwd=pdzs)    |
-| CULane     | ResNet34 | 76.0  |   [Google](https://drive.google.com/file/d/1AjnvAD3qmqt_dGPveZJsLZ1bOyWv62Yj/view?usp=sharing)/[Baidu](https://pan.baidu.com/s/1PHNpVHboQlmpjM5NXl9IxQ?pwd=jw8f)   |
-| Tusimple   | ResNet18 | 96.11 |   [Google](https://drive.google.com/file/d/1Clnj9-dLz81S3wXiYtlkc4HVusCb978t/view?usp=sharing)/[Baidu](https://pan.baidu.com/s/1umHo0RZIAQ1l_FzL2aZomw?pwd=6xs1)   |
-| Tusimple   | ResNet34 | 96.24 |   [Google](https://drive.google.com/file/d/1pkz8homK433z39uStGK3ZWkDXrnBAMmX/view?usp=sharing)/[Baidu](https://pan.baidu.com/s/1Eq7oxnDoE0vcQGzs1VsGZQ?pwd=b88p)   |
-| CurveLanes | ResNet18 | 80.42 |   [Google](https://drive.google.com/file/d/1VfbUvorKKMG4tUePNbLYPp63axgd-8BX/view?usp=sharing)/[Baidu](https://pan.baidu.com/s/1jCqKqgSQdh6nwC5pYpYO1A?pwd=urhe)   |
-| CurveLanes | ResNet34 | 81.34 |   [Google](https://drive.google.com/file/d/1O1kPSr85Icl2JbwV3RBlxWZYhLEHo8EN/view?usp=sharing)/[Baidu](https://pan.baidu.com/s/1fk2Wg-1QoHXTnTlasSM6uQ?pwd=4mn3)   |
+   使用 `--nproc_per_node` 指定工作的GPU数量
 
-For evaluation, run
-```Shell
-mkdir tmp
-
-python test.py configs/culane_res18.py --test_model /path/to/your/model.pth --test_work_dir ./tmp
+```
+python -m torch.distributed.launch --nproc_per_node=8 train.py configs/<config.py> --log_path /path/to/your/work/dir
 ```
 
-Same as training, multi-gpu evaluation is also supported.
-```Shell
-mkdir tmp
 
-python -m torch.distributed.launch --nproc_per_node=8 test.py configs/culane_res18.py --test_model /path/to/your/model.pth --test_work_dir ./tmp
+### 验证模型
+
+1. 创建一个`tmp`文件夹作为验证中间结果缓存目录
+
+   ```shell
+   mkdir tmp
+   ```
+
+2. **单卡测试**
+
+   ```shell
+   python test.py configs/culane_res18.py --test_model /path/to/your/model.pth --test_work_dir ./tmp
+   ```
+
+3. **分布式测试**
+
+   ```shell
+   python -m torch.distributed.launch --nproc_per_node=8 test.py configs/culane_res18.py --test_model /path/to/your/model.pth --test_work_dir ./tmp
+   ```
+
+   
+
+# 可视化
+## 可视化测试
+
+使用`demo.py`基于CULane数据集可视化生成9个场景的测试结果
+
+**注意：**输出的是每个场景下的一段后缀为`.avi`的视频，但视频并不是完全连续的，是将预测结果剪帧拼接的。
+
+**使用：**通过`config.py`指定模型参数，使用`--test_model	`指定用于可视化的训练好的模型
+
+```shell
+python demo.py configs/<config.py> --test_model /path/to/your/culane_res18.pth
 ```
 
-# Visualization
-We provide a script to visualize the detection results. Run the following commands to visualize on the testing set of CULane.
-```
-python demo.py configs/culane_res18.py --test_model /path/to/your/culane_res18.pth
+## 可视化统计
+
+使用`Tensorboard`进行可视化统计。
+
+### 启停TensorBoard
+
+1. **启动：**使用`--port`指定端口（默认为6007），使用`--logdir`指定TensorBoard的监测目录
+
+   监测对象为该文件夹下所有的以 `events.out.tfevents.`为前缀的训练日志文件 
+
+   ```shell
+   tensorboard --port 6007 --logdir /path/to/your/log
+   ```
+
+2. **停用**：销毁 tensorboard的后台进程
+
+   ```shell
+   kill $(pgrep -f tensorboard)
+   ```
+
+   也可以选择自行删除
+
+   ```shell
+   ps -ef | grep tensorboard
+   
+   kill -9 <tensorboard_pid>
+   ```
+
+3. **访问**：通过指定的端口，在本地访问Tensorboard面板（http://localhost:6007）
+
+## 可视化网络
+
+1. 使用`pt2onnx.py`将 `.pth` 模型文件转换为 `.onnx`模型文件
+
+   ```shell
+   python deploy/pt2onnx.py --config_path configs/culane_res34.py --model_path path/to/your/model.pth
+   ```
+
+2. 使用[Netron](https://netron.app/)可视化网络模型
+
+   使用Netron app打开生成的`.onnx` 文件
+
+   
+
+# 可视化部署
+
+1. 使用 trtexec 将`.onnx` 转换成`.engine` 模型，trtexec的具体使用部署方法见  [trtexec.md](./trtexec.md)
+
+   ```shell
+   trtexec --onnx=weights/culane_res34.onnx --saveEngine=weights/culane_res34.engine
+   ```
+
+2. 使用 `trt_infer.py` 对指定的视频源（可以为行车记录仪视频）进行检测 
+
+   - 通过 `--config_path` 指定模型配置文件
+
+   - 通过 `--engine_path` 指定 `.engine` 模型文件
+   - 通过 `--video_path` 指定 目标视频源文件路径
+
+   ```shell
+   python deploy/trt_infer.py --config_path  configs/culane_res34.py --engine_path weights/culane_res34.engine --video_path example.mp4
+   ```
+
+# 工具
+
+## 合并events
+
+若在 `<config.py>` 中指定 `resume` 的话，会重新生成一个缓存文件夹（包括新的 `events.out.tfevents `文件和 `.pth` 模型文件）若需要在Tensorboard观察到新的和旧的events文件的完整连续曲线，需要将两者合并。
+
+使用`merge_events.py` 合并两个events文件
+
+- 使用`--first_event` 指定第一个`events.out.tfevents` 文件，使用`second_event` 指定第二个  `events.out.tfevents`  文件
+- 使用 `--joint_point `指定衔接的step（第二个`events.out.tfevents` 文件接在第一个`events.out.tfevents` 的第一条记录的step）
+- 新的events文件将会在当前目录下生成
+
+```bash
+python scripts/merge_events.py --first_event path/to/your/first_event  --second_event path/to/your/second_event --joint_point <joint_step>
 ```
 
-# Citation
 
-```BibTeX
-@InProceedings{qin2020ultra,
-author = {Qin, Zequn and Wang, Huanyu and Li, Xi},
-title = {Ultra Fast Structure-aware Deep Lane Detection},
-booktitle = {The European Conference on Computer Vision (ECCV)},
-year = {2020}
-}
 
-@ARTICLE{qin2022ultrav2,
-  author={Qin, Zequn and Zhang, Pengyi and Li, Xi},
-  journal={IEEE Transactions on Pattern Analysis and Machine Intelligence}, 
-  title={Ultra Fast Deep Lane Detection With Hybrid Anchor Driven Ordinal Classification}, 
-  year={2022},
-  volume={},
-  number={},
-  pages={1-14},
-  doi={10.1109/TPAMI.2022.3182097}
-}
-```

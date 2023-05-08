@@ -1,8 +1,8 @@
+scikit-learn              ## 将原先的sklearn改为scikit-learn
 opencv-python
 tqdm
 tensorboard
 addict
-sklearn
 pathspec
 imagesize
 ujson
