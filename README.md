@@ -1,4 +1,10 @@
 # SESA-based-Lane-detection
+- 这是一份本科毕业设计，改良自 [Ultra-Fast-Lane-Detection-v2](https://github.com/cfzd/Ultra-Fast-Lane-Detection-v2)
+- 特色
+  - 混合锚标记车道线
+  - 注意力机制（SESA|SEBlock|CBAM|DAN|DSE）处理深层特征
+  - 序数分类法以期望代替绝对优化预测结果
+- 论文地址（后续发布）
 # 成果样例
 ![demo-night-1.png](assets/demo-night-1.png)
 
