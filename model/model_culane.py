@@ -2,7 +2,9 @@ import torch
 from model.backbone import resnet
 from utils.common import initialize_weights
 from model.seg_model import SegHead
-from seblock import DualSEBlock
+from model.seblock import SEBlock, DualSEBlock, DoubleSEBlock
+from model.sesa import SESA
+from model.cbam import CBAM
 
 
 class ParsingNet(torch.nn.Module):
@@ -24,15 +26,7 @@ class ParsingNet(torch.nn.Module):
         self.total_dim = self.dim1 + self.dim2 + self.dim3 + self.dim4
         mlp_mid_dim = 2048
         self.input_dim = input_height // 32 * input_width // 32 * 8
-
         self.model = resnet(backbone, pretrained=pretrained)
-
-        # for avg pool experiment
-        # self.pool = torch.nn.AdaptiveAvgPool2d(1)
-        # self.pool = torch.nn.AdaptiveMaxPool2d(1)
-
-        # self.register_buffer('coord', torch.stack([torch.linspace(0.5,9.5,10).view(-1,1).repeat(1,50), torch.linspace(0.5,49.5,50).repeat(10,1)]).view(1,2,10,50))
-
         self.cls = torch.nn.Sequential(
             # fc_norm为True则使用LayerNorm对输入进行归一化，否则使用恒等函数Identity
             torch.nn.LayerNorm(self.input_dim) if fc_norm else torch.nn.Identity(),
@@ -45,29 +39,27 @@ class ParsingNet(torch.nn.Module):
         )
         self.pool = torch.nn.Conv2d(512, 8, 1) if backbone in ['34', '18', '34fca'] else torch.nn.Conv2d(2048, 8, 1)
 
-        self.se512 = DualSEBlock(512)
-        self.se256 = DualSEBlock(256)
-        self.se128 = DualSEBlock(128)
+        self.se512 = SESA(512)
+        # self.se512 = SEBlock(512)
+        # self.se512 = DualSEBlock(512)
+        # self.se512 = DoubleSEBlock(512)
+        # self.se512 = CBAM(512)
 
         if self.use_aux:
             self.seg_head = SegHead(backbone, num_lane_on_row + num_lane_on_col)
 
-        initialize_weights(self.cls, self.se512, self.se256, self.se128)
+        # 初始化权重
+        initialize_weights(self.cls, self.se512)
 
     def forward(self, x):
         # 输入的x的样例 [1,3,288,800]   1：batch为1， 3：通道 RGB一共3个   288：h    800：w
         # 输入backbone，返回3层特征图的结果（依次下采样） 分别为 x2(1,128,36,100)，x3(1,256,18,50)，fea(1,512,9,25)
         x2, x3, fea = self.model(x)
-        # 注意力机制：
-        fea_att = self.se512(fea)
-        fea = fea_att * fea
+        # 使用注意力处理深层特征
+        fea = self.se512(fea)
 
         # 是否做分割任务，
         if self.use_aux:
-            x2_att = self.se128(x2)
-            x3_att = self.se256(x3)
-            x2 = x2 * x2_att
-            x3 = x3 * x3_att
             # 分割任务：将三组特征图拼接后 -> 卷积 -> 分割
             seg_out = self.seg_head(x2, x3, fea)  # 输出的channel都是128
 
@@ -83,15 +75,12 @@ class ParsingNet(torch.nn.Module):
         out = self.cls(fea)
 
         # loc_row 和 loc_col 为分别用 行锚和列锚得到的分类结果
-        pred_dict = {
-            'loc_row': out[:, :self.dim1].view(-1, self.num_grid_row, self.num_cls_row, self.num_lane_on_row),
-            'loc_col': out[:, self.dim1:self.dim1 + self.dim2].view(-1, self.num_grid_col, self.num_cls_col,
-                                                                    self.num_lane_on_col),
-            'exist_row': out[:, self.dim1 + self.dim2:self.dim1 + self.dim2 + self.dim3].view(-1, 2, self.num_cls_row,
-                                                                                              self.num_lane_on_row),
-            'exist_col': out[:, -self.dim4:].view(-1, 2, self.num_cls_col, self.num_lane_on_col),
-            'att_weights': {fea_att}
-        }
+        pred_dict = {'loc_row': out[:, :self.dim1].view(-1, self.num_grid_row, self.num_cls_row, self.num_lane_on_row),
+                     'loc_col': out[:, self.dim1:self.dim1 + self.dim2].view(-1, self.num_grid_col, self.num_cls_col,
+                                                                             self.num_lane_on_col),
+                     'exist_row': out[:, self.dim1 + self.dim2:self.dim1 + self.dim2 + self.dim3]
+                     .view(-1, 2, self.num_cls_row, self.num_lane_on_row),
+                     'exist_col': out[:, -self.dim4:].view(-1, 2, self.num_cls_col, self.num_lane_on_col)}
 
         # 是否有分割任务的分支
         if self.use_aux:
@@ -102,7 +91,8 @@ class ParsingNet(torch.nn.Module):
     # 测试时做数据增强
     def forward_tta(self, x):
         x2, x3, fea = self.model(x)
-
+        # 测试时也需要用注意力处理
+        fea = self.se512(fea)
         pooled_fea = self.pool(fea)
         n, c, h, w = pooled_fea.shape
 

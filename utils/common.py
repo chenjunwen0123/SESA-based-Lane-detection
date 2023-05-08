@@ -269,18 +269,15 @@ def calc_loss(loss_dict, results, logger, global_step, epoch):
         if loss_dict['weight'][i] == 0:
             continue
 
-        # 分类的输出结果
         data_src = loss_dict['data_src'][i]
 
         datas = [results[src] for src in data_src]
 
-        # 计算当前分类的损失
         loss_cur = loss_dict['op'][i](*datas)
 
         if global_step % 20 == 0:
             logger.add_scalar('loss/' + loss_dict['name'][i], loss_cur, global_step)
 
-        # 各损失的加权和
         loss += loss_cur * loss_dict['weight'][i]
 
     return loss
