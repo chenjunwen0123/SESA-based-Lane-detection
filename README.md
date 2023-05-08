@@ -1,14 +1,14 @@
 # SESA-based-Lane-detection
 # 成果样例
-![demo-night-1.png](assets\demo-night-1.png)
+![demo-night-1.png](assets/demo-night-1.png)
 
-![demo-night-2.png](assets\demo-night-2.png)
+![demo-night-2.png](assets/demo-night-2.png)
 
-![image-20230508142935076](assets\demo-dazzle-1.png)
+![image-20230508142935076](assets/demo-dazzle-1.png)
 
-![image-20230508143012771](assets\demo-shadow-1.png)
+![image-20230508143012771](assets/demo-shadow-1.png)
 
-![image-20230508143040448](assets\demo-curve-1.png)
+![image-20230508143040448](assets/demo-curve-1.png)
 
 
 # 预配置
